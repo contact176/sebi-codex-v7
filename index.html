@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Sebi Codex</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Cormorant+Garamond:wght@300;400;600&display=swap" rel="stylesheet">
+
 <style>
 body {
   margin:0;
@@ -17,21 +19,25 @@ body {
   min-height:100vh;
   text-align:center;
 }
+
 .container {
   max-width:600px;
   padding:20px;
 }
+
 .logo {
   letter-spacing:.5em;
   color:#4a9e84;
   font-size:.7rem;
   margin-bottom:20px;
 }
+
 .title {
   font-family:'Playfair Display', serif;
   font-size:3rem;
   line-height:1;
 }
+
 .title span {
   display:block;
   font-style:italic;
@@ -39,17 +45,20 @@ body {
   font-size:1.2rem;
   margin-top:10px;
 }
+
 .tagline {
   margin:20px 0 30px;
   font-style:italic;
   color:#8acfba;
 }
+
 .search-box {
   display:flex;
   border-radius:50px;
   overflow:hidden;
   border:1px solid rgba(74,158,132,.3);
 }
+
 .search-box input {
   flex:1;
   padding:15px;
@@ -59,6 +68,7 @@ body {
   color:white;
   font-size:1rem;
 }
+
 .search-box button {
   background:#2e6b58;
   border:none;
@@ -66,10 +76,12 @@ body {
   padding:15px 25px;
   cursor:pointer;
 }
+
 .results {
   margin-top:30px;
   text-align:left;
 }
+
 .card {
   background:rgba(30,64,53,.4);
   border:1px solid rgba(74,158,132,.2);
@@ -77,33 +89,46 @@ body {
   padding:15px;
   margin-bottom:15px;
 }
+
 .card h3 {
   font-family:'Playfair Display', serif;
   margin-bottom:10px;
 }
+
 .small {
   font-size:.9rem;
   opacity:.8;
 }
 </style>
 </head>
+
 <body>
+
 <div class="container">
+
 <div class="logo">THE SEBI CODEX</div>
+
 <div class="title">
 Alkaline Healing
 <span>African Bio-Mineral Balance</span>
 </div>
+
 <div class="tagline">
 Search any disease, condition, addiction, or symptom.
 </div>
+
 <div class="search-box">
 <input id="search" placeholder="Type any condition or symptom...">
 <button onclick="runSearch()">Search</button>
 </div>
+
 <div id="results" class="results"></div>
+
 </div>
+
 <script>
+
+// ===== LOCAL DATABASE =====
 const DB = {
 "diabetes": {
 title:"Diabetes",
@@ -122,45 +147,46 @@ title:"Depression",
 text:"Depression is electrical failure in a mineral-deficient body. Restore minerals and the mind stabilizes."
 }
 };
+
+// ===== MAIN SEARCH =====
 async function runSearch(){
 const q = document.getElementById("search").value.toLowerCase();
 const results = document.getElementById("results");
 results.innerHTML = "";
+
+// LOCAL RESULT
 if(DB[q]){
 renderCard(DB[q].title, DB[q].text, "Database Result");
 return;
 }
-// AI fallback
+
+// ===== AI VIA SUPABASE =====
 try{
-const res = await fetch("https://api.openai.com/v1/chat/completions", {
+const res = await fetch("https://YOURPROJECT.supabase.co/functions/v1/ai-health", {
 method:"POST",
 headers:{
-"Content-Type":"application/json",
-"Authorization":"Bearer YOUR_API_KEY_HERE"
+"Content-Type":"application/json"
 },
-body:JSON.stringify({
-model:"gpt-4o-mini",
-messages:[
-{
-role:"system",
-content:"Respond like Dr Sebi philosophy. Keep it short."
-},
-{
-role:"user",
-content:q
-}
-]
-})
+body:JSON.stringify({ query:q })
 });
+
 const data = await res.json();
-const text = data.choices[0].message.content;
-renderCard(q, text, "AI Result");
+
+if(!data || !data.rc){
+throw new Error("Bad response");
+}
+
+renderCard(data.name, data.rc, "AI Result");
+
 }catch(e){
-renderCard("Error", "AI request failed. Check API key.", "System");
+renderCard(q, "No database entry yet. This condition will be added soon.", "Fallback");
 }
 }
+
+// ===== UI RENDER =====
 function renderCard(title, text, label){
 const results = document.getElementById("results");
+
 results.innerHTML += `
 <div class="card">
 <h3>${title}</h3>
@@ -169,6 +195,8 @@ results.innerHTML += `
 </div>
 `;
 }
+
 </script>
+
 </body>
 </html>
