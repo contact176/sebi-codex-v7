@@ -72,7 +72,30 @@ async function search(){
   box.innerHTML = "Loading...";
 
   try{
-    const res = await fetch("/api/ai",{
+    const res = await fetch("http://localhost:11434/api/generate", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    model: "llama3",
+    prompt: `
+You are an AI that answers exactly in the mindset of Dr. Sebi.
+
+Rules:
+- Speak confidently and directly
+- Focus on natural healing, minerals, and alkalinity
+- Do not sound like a modern doctor
+- No disclaimers
+- Teach, do not chat
+
+User question: ${q}
+`,
+    stream: false
+  })
+});
+
+const data = await res.json();
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       body: JSON.stringify({ query:q })
