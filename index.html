@@ -1,0 +1,156 @@
+DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sebi Codex</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0f0f11;
+  color: #fff;
+}
+.container {
+  max-width: 800px;
+  margin: auto;
+  padding: 20px;
+}
+input {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: none;
+}
+button {
+  margin-top: 10px;
+  padding: 10px;
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  background: #2a2a30;
+  color: #fff;
+  font-size: 16px;
+}
+.result {
+  margin-top: 20px;
+  background: #1a1a1d;
+  padding: 20px;
+  border-radius: 10px;
+}
+.aib {
+  margin-top: 10px;
+  font-size: 12px;
+  opacity: 0.6;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+  <h1>Sebi Codex</h1>
+
+  <input id="searchInput" placeholder="Search condition..." />
+  <button onclick="handleSearch()">Search</button>
+
+  <div id="result" class="result" style="display:none;"></div>
+</div>
+
+<script>
+
+// ===== DATABASE =====
+const DB = [
+  {
+    name: "headache",
+    rc: "A headache is pain in the head often caused by stress, dehydration, or tension.",
+    steps: [
+      { t: "Hydrate", b: "Drink water and rest." },
+      { t: "Relax", b: "Reduce stress and tension." }
+    ],
+    safety: "Seek care if severe or recurring."
+  }
+];
+
+// ===== CACHE =====
+const cache = new Map();
+
+// ===== SEARCH DB =====
+function searchDB(q) {
+  return DB.filter(item =>
+    item.name.toLowerCase().includes(q.toLowerCase())
+  );
+}
+
+// ===== AI CALL =====
+async function doGen(q) {
+  try {
+    if (cache.has(q)) {
+      render(cache.get(q), true);
+      return;
+    }
+
+    const res = await fetch("https://YOURPROJECT.supabase.co/functions/v1/ai-health", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ query: q })
+    });
+
+    const data = await res.json();
+
+    if (!data || !data.name) throw new Error();
+
+    cache.set(q, data);
+    render(data, true);
+
+  } catch {
+    render({
+      name: q,
+      rc: "Information not available.",
+      steps: [],
+      safety: "Consult a professional."
+    }, true);
+  }
+}
+
+// ===== HANDLE SEARCH =====
+function handleSearch() {
+  const q = document.getElementById("searchInput").value;
+  const found = searchDB(q);
+
+  if (found.length > 0) {
+    render(found[0], false);
+  } else {
+    doGen(q);
+  }
+}
+
+// ===== RENDER =====
+function render(data, isAI) {
+  const div = document.getElementById("result");
+  div.style.display = "block";
+
+  let html = `<h2>${data.name}</h2>`;
+  html += `<p>${data.rc}</p>`;
+
+  if (data.steps) {
+    data.steps.forEach(s => {
+      html += `<p><strong>${s.t}:</strong> ${s.b}</p>`;
+    });
+  }
+
+  html += `<p style="opacity:0.7">${data.safety || ""}</p>`;
+
+  if (isAI) {
+    html += `<div class="aib">AI Generated</div>`;
+  }
+
+  div.innerHTML = html;
+}
+
+</script>
+</body>
+</html>
