@@ -1,202 +1,838 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Sebi Codex</title>
+import { useState, useRef, useEffect } from “react”;
 
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Cormorant+Garamond:wght@300;400;600&display=swap" rel="stylesheet">
+const CSS = `
+@import url(‘https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=IM+Fell+English:ital@0;1&display=swap’);
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+–void:#0b1412;–moss:#2e6b58;–sage:#4a9e84;–mist:#8acfba;
+–fog:#d0ede6;–cream:#f4ede0;–goldl:#e8c96a;–ochre:#c4742e;
+}
+.sr{min-height:100vh;width:100%;background:var(–void);
+background-image:radial-gradient(ellipse at 25% 0%,rgba(30,64,53,.42) 0%,transparent 50%),
+radial-gradient(ellipse at 80% 100%,rgba(46,107,88,.16) 0%,transparent 44%);
+font-family:‘Cormorant Garamond’,serif;color:var(–cream);overflow-x:hidden;}
+.ptc{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.pt{position:absolute;border-radius:50%;background:var(–sage);opacity:0;animation:drift linear infinite;}
+@keyframes drift{0%{transform:translateY(100vh) scale(0);opacity:0}10%{opacity:.15}90%{opacity:.06}100%{transform:translateY(-10vh) scale(1.4);opacity:0}}
 
-<style>
-body {
-  margin:0;
-  font-family:'Cormorant Garamond', serif;
-  background:#0b1412;
-  color:#f4ede0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  min-height:100vh;
-  text-align:center;
+/* ── HOME ── */
+.hv{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:36px 20px 70px;position:relative;z-index:1;}
+.logo{font-size:.64rem;letter-spacing:.55em;text-transform:uppercase;color:var(–sage);margin-bottom:22px;opacity:0;animation:fIn 1.2s .3s forwards;}
+.htitle{font-family:‘Playfair Display’,serif;font-size:clamp(2.4rem,8vw,5.4rem);font-weight:700;line-height:.94;text-align:center;color:var(–fog);opacity:0;animation:fIn 1s .6s forwards;}
+.htitle span{display:block;font-style:italic;color:var(–goldl);font-size:.58em;letter-spacing:.04em;margin-top:7px;}
+.htag{font-family:‘IM Fell English’,serif;font-style:italic;font-size:.96rem;color:rgba(138,207,186,.48);text-align:center;margin:14px 0 36px;max-width:420px;line-height:1.6;opacity:0;animation:fIn 1s .9s forwards;}
+@keyframes fIn{to{opacity:1}}
+@keyframes sUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ── SEARCH ── */
+.sw{width:100%;max-width:600px;position:relative;opacity:0;animation:sUp .8s 1.1s forwards;}
+.sb{display:flex;align-items:center;background:rgba(30,64,53,.4);border:1px solid rgba(74,158,132,.32);border-radius:60px;padding:5px 5px 5px 24px;gap:9px;backdrop-filter:blur(12px);transition:border-color .3s,box-shadow .3s;}
+.sb:focus-within{border-color:rgba(74,158,132,.68);box-shadow:0 0 36px rgba(74,158,132,.11);}
+.sico{color:var(–sage);font-size:.86rem;opacity:.58;flex-shrink:0;}
+input.sqi{flex:1;background:none;border:none;outline:none;font-family:‘Cormorant Garamond’,serif;font-size:1.1rem;font-weight:300;color:var(–cream);caret-color:var(–sage);padding:12px 0;}
+input.sqi::placeholder{color:rgba(138,207,186,.28);}
+input.rqi{background:none;border:none;outline:none;font-family:‘Cormorant Garamond’,serif;font-size:.9rem;color:var(–cream);caret-color:var(–sage);padding:7px 0;width:170px;}
+input.rqi::placeholder{color:rgba(138,207,186,.22);}
+
+/* ── DROPDOWN ── */
+.dd{position:absolute;top:calc(100% + 7px);left:0;right:0;background:rgba(10,20,16,.97);border:1px solid rgba(74,158,132,.22);border-radius:13px;overflow:hidden;backdrop-filter:blur(16px);box-shadow:0 14px 44px rgba(0,0,0,.58);z-index:300;}
+.ddi{padding:11px 20px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(74,158,132,.06);transition:background .13s;}
+.ddi:hover,.ddi.act{background:rgba(74,158,132,.12);}
+.ddn{font-size:1rem;color:var(–fog);}
+.ddc{font-size:.62rem;letter-spacing:.13em;text-transform:uppercase;color:rgba(138,207,186,.34);}
+.ddg{padding:11px 20px;cursor:pointer;display:flex;align-items:center;gap:9px;border-top:1px solid rgba(196,154,46,.13);background:rgba(196,154,46,.04);transition:background .13s;}
+.ddg:hover{background:rgba(196,154,46,.1);}
+.ddgl{font-style:italic;font-size:.94rem;color:rgba(232,201,106,.68);}
+.ddgb{font-size:.62rem;letter-spacing:.11em;text-transform:uppercase;color:rgba(196,154,46,.36);margin-left:auto;}
+.dde{padding:12px 20px;color:rgba(138,207,186,.34);font-style:italic;font-size:.9rem;}
+
+/* ── CHIPS ── */
+.chips{margin-top:22px;display:flex;flex-wrap:wrap;gap:7px;justify-content:center;opacity:0;animation:fIn 1s 1.6s forwards;}
+.chl{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(138,207,186,.25);width:100%;text-align:center;margin-bottom:2px;}
+.chip{background:rgba(30,64,53,.32);border:1px solid rgba(74,158,132,.18);border-radius:30px;padding:4px 13px;font-family:‘Cormorant Garamond’,serif;font-size:.83rem;color:rgba(138,207,186,.52);cursor:pointer;transition:all .18s;}
+.chip:hover{background:rgba(46,107,88,.42);border-color:rgba(74,158,132,.46);color:var(–mist);}
+
+/* ── RESULT NAV ── */
+.rv{max-width:780px;margin:0 auto;padding:32px 22px 80px;position:relative;z-index:1;}
+.rnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;padding-bottom:14px;border-bottom:1px solid rgba(46,107,88,.24);flex-wrap:wrap;gap:10px;}
+.bbtn{background:none;border:1px solid rgba(74,158,132,.22);border-radius:30px;color:rgba(138,207,186,.55);font-family:‘Cormorant Garamond’,serif;font-size:.84rem;padding:7px 18px;cursor:pointer;transition:all .18s;}
+.bbtn:hover{border-color:rgba(74,158,132,.46);color:var(–mist);background:rgba(46,107,88,.12);}
+.nbrand{font-family:‘Playfair Display’,serif;font-size:.66rem;letter-spacing:.34em;text-transform:uppercase;color:rgba(74,158,132,.26);}
+.rsw{position:relative;}
+.rsb{display:flex;align-items:center;background:rgba(30,64,53,.26);border:1px solid rgba(74,158,132,.18);border-radius:40px;padding:3px 3px 3px 16px;gap:7px;transition:border-color .22s;}
+.rsb:focus-within{border-color:rgba(74,158,132,.44);}
+
+/* ── RESULT HEADER ── */
+.rhead{text-align:center;margin-bottom:28px;animation:sUp .45s .04s both;}
+.rey{font-size:.6rem;letter-spacing:.4em;text-transform:uppercase;color:var(–sage);margin-bottom:10px;font-weight:300;}
+.rtit{font-family:‘Playfair Display’,serif;font-size:clamp(1.7rem,5vw,2.8rem);font-weight:700;line-height:1.1;color:var(–fog);}
+.rtit em{font-style:italic;color:var(–goldl);}
+.rdivr{display:flex;align-items:center;gap:10px;justify-content:center;margin-top:12px;}
+.rdl{width:48px;height:1px;background:linear-gradient(to right,transparent,var(–moss));}
+.rdlr{width:48px;height:1px;background:linear-gradient(to left,transparent,var(–moss));}
+.rdot{font-size:.8rem;color:var(–sage);}
+.aib{display:inline-flex;align-items:center;gap:5px;background:rgba(196,154,46,.06);border:1px solid rgba(196,154,46,.16);border-radius:20px;padding:3px 12px;margin-top:10px;font-size:.62rem;letter-spacing:.13em;text-transform:uppercase;color:rgba(196,154,46,.52);}
+
+/* ── SUMMARY CARD (compact hero) ── */
+.sumcard{background:linear-gradient(135deg,rgba(46,107,88,.14),rgba(11,20,18,.72));border-left:3px solid var(–sage);border-radius:0 10px 10px 0;padding:16px 22px;margin-bottom:18px;animation:sUp .45s .1s both;}
+.sumtitle{font-family:‘Playfair Display’,serif;font-size:.82rem;font-weight:700;color:var(–sage);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;}
+.sumtxt{font-size:.97rem;line-height:1.72;color:rgba(244,237,224,.8);font-weight:300;}
+
+/* ── ELIMINATE ROW ── */
+.elimrow{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;animation:sUp .45s .15s both;}
+.elimlabel{font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(196,116,46,.65);width:100%;margin-bottom:4px;font-family:‘Playfair Display’,serif;}
+.etag{background:rgba(196,116,46,.09);border:1px solid rgba(196,116,46,.2);border-radius:20px;padding:3px 11px;font-size:.77rem;color:rgba(232,190,140,.68);}
+
+/* ── ACCORDION ── */
+.acc{margin-bottom:10px;border:1px solid rgba(74,158,132,.12);border-radius:10px;overflow:hidden;animation:sUp .45s .2s both;}
+.acchdr{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;cursor:pointer;background:rgba(30,64,53,.18);transition:background .15s;user-select:none;}
+.acchdr:hover{background:rgba(46,107,88,.22);}
+.accttl{font-family:‘Playfair Display’,serif;font-size:.9rem;font-weight:700;color:var(–fog);display:flex;align-items:center;gap:8px;}
+.accicon{font-size:.7rem;color:var(–sage);transition:transform .25s;flex-shrink:0;}
+.accicon.open{transform:rotate(180deg);}
+.accbody{overflow:hidden;transition:max-height .3s ease,padding .3s ease;}
+.accbody.closed{max-height:0;}
+.accbody.open{max-height:2000px;}
+.acccontent{padding:14px 18px 16px;}
+
+/* ── STEP CARDS (compact) ── */
+.sgrid{display:flex;flex-direction:column;gap:8px;}
+.sc{background:rgba(20,40,32,.5);border:1px solid rgba(74,158,132,.1);border-radius:8px;padding:12px 16px;display:flex;gap:12px;transition:border-color .2s;}
+.sc:hover{border-color:rgba(74,158,132,.28);}
+.sn{font-family:‘Playfair Display’,serif;font-size:1.4rem;font-weight:700;color:var(–sage);opacity:.28;line-height:1;min-width:20px;margin-top:2px;}
+.sc h4{font-family:‘Playfair Display’,serif;font-size:.88rem;font-weight:700;color:var(–fog);margin-bottom:4px;}
+.sc p{font-size:.88rem;line-height:1.65;color:rgba(244,237,224,.68);font-weight:300;}
+.tags{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;}
+.ht{background:rgba(74,158,132,.09);border:1px solid rgba(74,158,132,.22);color:#a8d9ca;font-size:.68rem;letter-spacing:.04em;padding:2px 8px;border-radius:18px;}
+.ft{background:rgba(196,154,46,.07);border:1px solid rgba(196,154,46,.19);color:rgba(232,201,106,.72);font-size:.68rem;letter-spacing:.04em;padding:2px 8px;border-radius:18px;}
+
+/* ── PHARMA BOX ── */
+.pharmabox{background:linear-gradient(135deg,rgba(139,74,30,.1),rgba(11,20,18,.78));border:1px solid rgba(139,74,30,.24);border-radius:8px;padding:12px 16px;}
+.pharmatxt{font-size:.91rem;line-height:1.7;color:rgba(244,237,224,.72);font-weight:300;}
+
+/* ── DEEPER BOX ── */
+.deeperbox{background:rgba(20,40,32,.45);border:1px solid rgba(74,158,132,.16);border-radius:8px;padding:12px 16px;}
+.deepertxt{font-size:.91rem;line-height:1.7;color:rgba(244,237,224,.7);font-weight:300;}
+
+/* ── QUOTE ── */
+.rqb{position:relative;background:linear-gradient(160deg,rgba(196,154,46,.06),rgba(11,20,18,.8));border:1px solid rgba(196,154,46,.17);border-radius:10px;padding:20px 24px 20px 40px;margin:22px 0;animation:sUp .45s .44s both;}
+.rqb::before{content:’”’;font-family:‘Playfair Display’,serif;font-size:4.2rem;color:var(–goldl);opacity:.17;position:absolute;top:-8px;left:10px;line-height:1;}
+.rqb p{font-family:‘Playfair Display’,serif;font-style:italic;font-size:1.06rem;line-height:1.66;color:var(–fog);}
+.rqb cite{display:block;font-style:normal;font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(196,154,46,.38);margin-top:10px;}
+
+/* ── DISCLAIMER ── */
+.disc{background:rgba(255,255,255,.015);border:1px dashed rgba(74,158,132,.12);border-radius:7px;padding:12px 18px;margin-top:24px;}
+.disc p{font-size:.74rem;line-height:1.65;color:rgba(244,237,224,.26);font-style:italic;}
+.disc strong{color:rgba(244,237,224,.38);font-style:normal;}
+
+/* ── LOADING / ERROR ── */
+.lw{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:40vh;gap:18px;}
+.lorb{width:44px;height:44px;border-radius:50%;border:1px solid rgba(74,158,132,.22);border-top-color:var(–sage);animation:spin 1.2s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ltx{font-family:‘IM Fell English’,serif;font-style:italic;font-size:.9rem;color:rgba(138,207,186,.38);}
+.lcn{font-family:‘Playfair Display’,serif;font-size:1rem;color:rgba(208,237,230,.5);font-style:italic;}
+.ebox{background:rgba(120,35,25,.09);border:1px solid rgba(120,35,25,.24);border-radius:9px;padding:18px 22px;margin-top:18px;}
+.ebox p{font-size:.84rem;line-height:1.65;color:rgba(255,170,150,.62);}
+.edbg{font-family:monospace;font-size:.66rem;word-break:break-all;opacity:.38;margin-top:6px;line-height:1.45;white-space:pre-wrap;}
+.rbtn{margin-top:12px;display:inline-block;background:rgba(74,158,132,.12);border:1px solid rgba(74,158,132,.24);border-radius:18px;color:var(–mist);font-family:‘Cormorant Garamond’,serif;font-size:.84rem;padding:7px 18px;cursor:pointer;transition:all .18s;}
+.rbtn:hover{background:rgba(74,158,132,.2);}
+.foot{text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid rgba(46,107,88,.18);position:relative;z-index:1;}
+.foot p{font-size:.62rem;letter-spacing:.28em;text-transform:uppercase;color:rgba(74,158,132,.16);}
+@media(max-width:560px){
+.rnav{flex-direction:column;align-items:flex-start;}
+.nbrand{display:none;}
+input.rqi{width:110px;}
+.sc{flex-direction:column;gap:4px;}
+.rqb{padding:18px 18px 18px 28px;}
+}`;
+
+/* ════════════════════════════════════════════
+DATABASE  — compact rc / pharma / deeper
+════════════════════════════════════════════ */
+const DB = [
+{id:‘alzheimers’,name:“Alzheimer’s & Dementia”,cat:‘Neurological’,al:[‘alzheimers’,‘alzheimer’,‘dementia’,‘memory loss’,‘cognitive decline’,‘forgetfulness’,‘senility’,‘vascular dementia’,‘lewy body’],
+rh:‘A Brain Drowning in Mucus and Mineral Starvation’,
+rc:“The brain does not forget on its own. It forgets because it has been progressively starved of the minerals required to maintain its electrical architecture — and simultaneously poisoned by the mucus, the aluminum, and the acidic metabolic waste that accumulates when the lymphatic drainage of the brain is congested. Alzheimer’s is not a disease of aging. It is a disease of decades of acid diet, mineral depletion, and a glymphatic system that stopped clearing at night because the body was never given what it needed to clean itself while it slept.”,
+pharma:“Donepezil, memantine, and the newer amyloid-targeting drugs slow the rate of cognitive decline modestly at best. They do not address the mineral starvation, the neuroinflammation, or the glymphatic congestion driving the degeneration. Begin the mineral protocol alongside medical care. The brain that is better fed, better drained, and less inflamed responds better to every intervention — pharmaceutical or herbal.”,
+el:[‘Aluminum — in antiperspirants, conventional cookware, processed cheese, baking powder’,‘All processed sugar — feeds the neuroinflammation destroying brain tissue’,‘Conventional animal products — primary driver of the neuroinflammation’,‘Fluoridated tap water — displaces iodine in neurological tissue’,‘Alcohol — a direct neurotoxin’],
+steps:[
+{t:‘Sea Moss & Bladderwrack — Brain Mineral Foundation’,b:‘The neurons responsible for memory require the highest mineral density of any tissue. Sea moss and bladderwrack restore the complete mineral matrix — magnesium, iodine, iron, phosphorus — that brain cell maintenance depends on.’,h:[‘Sea Moss’,‘Bladderwrack’],f:[]},
+{t:‘Blue Vervain — Glymphatic & Neural Regulation’,b:‘Blue vervain nourishes the nervous tissue and supports the glymphatic drainage system that clears amyloid waste from the brain during deep sleep. It reduces the neuroinflammation that accelerates cognitive decline.’,h:[‘Blue Vervain’],f:[]},
+{t:‘Chaparral — Neuroinflammation & Lymphatic Clearing’,b:“Chaparral is the most powerful systemic anti-inflammatory in my herbal system. For Alzheimer’s and dementia it addresses both the neuroinflammation destroying brain tissue and the congested lymphatic system preventing its clearance.”,h:[‘Chaparral’],f:[]},
+{t:‘Ginkgo Biloba — Cerebral Circulation’,b:‘Ginkgo biloba improves blood flow to the brain specifically — delivering the oxygen and minerals that neural tissue requires to maintain function. It is one of the most researched herbs for cognitive decline.’,h:[‘Ginkgo biloba’],f:[]},
+{t:‘Soursop & Walnuts — Neuroprotection’,b:‘Soursop contains annonaceous acetogenins studied for neuroprotective properties. Walnuts contain specific compounds — including ellagic acid and omega-3s — that directly protect against neuroinflammation and support myelin integrity.’,h:[],f:[‘Soursop (leaf tea and whole fruit)’,‘Walnuts’,‘Hemp seeds’,‘Avocado’,‘Brazil nuts’,‘Figs’,‘Blueberries (wild)’]}],
+deeper:“If cognitive decline continues after three months of genuine protocol, examine sleep architecture with absolute priority. The glymphatic system — the brain’s waste clearance system — operates almost entirely during deep sleep. A brain that is not entering deep sleep is not clearing the amyloid and tau proteins that accumulate in Alzheimer’s. Valerian root, tila, and blue vervain taken nightly address this directly. Also examine aluminum exposure — conventional deodorant, aluminum cookware, and processed foods are the primary sources most people overlook.”,
+q:“The brain does not want to forget. It forgets because it has been abandoned by the body that was supposed to feed it. Feed it. Drain it. And it will remember.”,qs:“Dr. Sebi on Alzheimer’s and Cognitive Decline”},
+
+{id:‘diabetes’,name:‘Diabetes’,cat:‘Metabolic’,al:[‘blood sugar’,‘hyperglycemia’,‘insulin’,‘type 2’,‘type 1’,‘sugar’],
+rh:‘Mucus Buried on the Pancreas’,
+rc:‘The pancreas is not broken — it is buried. Years of acidic food have coated it in mucus until it can no longer produce insulin correctly. Remove the mucus. Restore the minerals. The pancreas remembers what it was built to do.’,
+pharma:‘Metformin and insulin manage the blood sugar number — they do not address the mucus on the pancreas or the acidic diet that created the condition. Run the protocol alongside medication. As the body heals, the physician can evaluate dosage.’,
+el:[‘All hybrid starch — white rice, white flour’,‘Processed sugar in every form’,‘Dairy’,‘Animal flesh’,‘Alcohol’],
+steps:[
+{t:‘Sea Moss & Bladderwrack’,b:‘Begin cellular re-mineralization — feeding the pancreas what it has been starved of.’,h:[‘Sea Moss’,‘Bladderwrack’],f:[]},
+{t:‘Nopal — Blood Sugar’,b:‘Regulates glucose absorption in the intestines. Addresses blood sugar at its source not its symptom.’,h:[‘Nopal’],f:[‘Nopales’]},
+{t:‘Burdock Root — Pancreatic Cleanse’,b:‘Breaks down the mucus coating the pancreas. Strong decoction three times daily.’,h:[‘Burdock Root’],f:[]},
+{t:‘Sarsaparilla — Mineral Delivery’,b:‘Iron-rich carrier herb — drives minerals deep into the cellular structure.’,h:[‘Sarsaparilla’],f:[]},
+{t:‘Electric Foods’,b:‘Quinoa and amaranth replace starchy grains. Soursop and key lime water directly support the diabetic condition.’,h:[],f:[‘Quinoa’,‘Amaranth’,‘Soursop’,‘Key lime water’,‘Figs’,‘Seeded grapes’]}],
+deeper:‘If no change after 3 months: audit for hidden dairy and sugar. Then restore the gut — cascara sagrada to clear the bowel, sea moss as prebiotic to rebuild mucosal lining. After 30 days of gut restoration the minerals begin to arrive where they are needed.’,
+q:‘The pancreas is not broken. It is buried. Unbury it, and the body corrects itself.’,qs:‘Dr. Sebi on Diabetes’},
+
+{id:‘hypertension’,name:‘High Blood Pressure’,cat:‘Cardiovascular’,al:[‘hypertension’,‘blood pressure’,‘high bp’,‘heart pressure’],
+rh:‘Obstruction in the Arterial Highway’,
+rc:‘The blood pressure rises because of what is obstructing the path the heart must push through. Mucus and mineral deposits narrow the arteries. The heart increases force to compensate. I call it a clogged river.’,
+pharma:‘Beta blockers and ACE inhibitors lower the number — they do not dissolve arterial plaque or restore potassium deficiency. They also deplete magnesium over time. Run the herbal protocol alongside medication.’,
+el:[‘Table salt — replace with sea salt’,‘Animal fats and dairy’,‘Processed and fried foods’,‘Alcohol and tobacco’],
+steps:[
+{t:‘Lily of the Valley — Heart Tonic’,b:‘Strengthens cardiac muscle and reduces arterial tension.’,h:[‘Lily of the Valley’],f:[]},
+{t:‘Hawthorn Berry — Arterial Cleanse’,b:‘Dilates blood vessels and gradually dissolves arterial plaque. Sixty days minimum.’,h:[‘Hawthorn Berry’],f:[]},
+{t:‘Sea Moss & Bladderwrack — Potassium’,b:‘Flood the body with potassium, magnesium, and iodine that regulate arterial tone.’,h:[‘Sea Moss’,‘Bladderwrack’],f:[]},
+{t:‘Burdock Root & Yellow Dock’,b:‘Remove the debris that scrapes and inflames arterial walls.’,h:[‘Burdock Root’,‘Yellow Dock’],f:[]},
+{t:‘Electric Foods’,b:‘Avocado, watercress, dandelion greens, seeded grapes.’,h:[],f:[‘Avocado’,‘Watercress’,‘Dandelion greens’,‘Seeded grapes’,‘Coconut water’]}],
+deeper:“If blood pressure is not responding: examine the water — fluoride contributes to arterial stiffness. Switch to spring water. Examine sleep — cortisol during poor sleep raises blood pressure independently of diet.”,
+q:‘The blood pressure rises because something is in the way. Remove what is in the way.’,qs:‘Dr. Sebi on Hypertension’},
+
+{id:‘asthma’,name:‘Asthma’,cat:‘Respiratory’,al:[‘breathing’,‘bronchial’,‘wheezing’,‘respiratory’,‘inhaler’,‘shortness of breath’],
+rh:‘Mucus Built in the Bronchial Passages’,
+rc:‘I had asthma. A herbalist in Mexico gave me herbs and a diet — and the asthma left. The bronchial passages are lined with mucus. Dairy, wheat, and hybrid starch build that lining daily. Remove the builders and the passages open.’,
+pharma:‘Inhalers open what the mucus has closed — they are relief, not resolution. Corticosteroids used long-term deplete the very minerals the respiratory system needs. Keep the inhaler for emergencies while doing the work that makes the emergency unnecessary.’,
+el:[‘Dairy — single greatest mucus-forming substance’,‘Conventional wheat and hybrid grains’,‘Animal products’,‘Cold foods and beverages’],
+steps:[
+{t:‘Mullein — Lung Opener’,b:‘Dissolves compacted mucus from the bronchial passages. Tea twice daily.’,h:[‘Mullein’],f:[]},
+{t:‘Chaparral — Lymphatic Clearing’,b:‘Clears the lymphatic system feeding the lungs.’,h:[‘Chaparral’],f:[]},
+{t:‘Guaco — Bronchial Relaxant’,b:‘Opens constricted airways. Nightly tea reduces attack frequency.’,h:[‘Guaco’],f:[]},
+{t:‘Eucalyptus Steam’,b:‘Boil with thyme, breathe under cloth 15 mins twice daily.’,h:[‘Eucalyptus (steam)’,‘Thyme (steam)’],f:[]},
+{t:‘Sea Moss’,b:‘Soothes respiratory mucosa and re-mineralizes the tissue daily.’,h:[‘Sea Moss’],f:[‘Soursop’,‘Elderberries’,‘Figs’]}],
+deeper:‘If asthma persists: examine home — mold, synthetic cleaners, dust mites are bronchial irritants no herb overcomes. Investigate whether stress is a trigger — blue vervain addresses the nervous system component pharmaceutical bronchodilators do not touch.’,
+q:‘I had asthma. It is gone. Not managed — gone.’,qs:‘Dr. Sebi on his personal healing’},
+
+{id:‘adhd’,name:‘ADHD & ADD’,cat:‘Mental Health’,al:[‘adhd’,‘attention deficit’,‘hyperactivity’,‘add’,‘attention disorder’,‘focus’,‘strattera’,‘adderall’,‘ritalin’,‘concentration’],
+rh:‘A Brain Under-Mineralized and Over-Stimulated’,
+rc:“ADHD is not a disorder of attention. It is a brain that cannot sustain focus because it does not have the minerals required to regulate its own electrical activity. The pharmaceutical solution borrows from the future — depleting the very minerals that would solve the problem. My solution is to stop borrowing and start building.”,
+pharma:“Strattera (atomoxetine) inhibits norepinephrine reuptake. Norepinephrine is produced from tyrosine — which requires iron — which is in yellow dock, sarsaparilla, and hemp seeds. The benefit people feel from Strattera is their own chemistry, redirected. I want to restore the source. Strattera carries a black box warning for increased suicidal ideation in children. Do not stop medication abruptly — begin the mineral restoration alongside it.”,
+el:[‘Processed sugar — creates glucose volatility that amplifies ADHD’,‘Artificial colors and preservatives — directly linked to hyperactivity’,‘Conventional dairy — the casomorphin impairs neurological regulation’,‘Caffeine — borrows from an already depleted system’,‘Fluoridated tap water — displaces iodine in neurological tissue’],
+steps:[
+{t:‘Sea Moss & Bladderwrack — Brain Mineral Foundation’,b:‘The prefrontal cortex requires the highest mineral density of any brain region. This is the non-negotiable foundation.’,h:[‘Sea Moss’,‘Bladderwrack’],f:[]},
+{t:‘Blue Vervain — Neurological Regulation’,b:‘Normalizes the firing threshold so the brain can regulate its own attention. Not sedating — rebuilding.’,h:[‘Blue Vervain’],f:[]},
+{t:‘Sarsaparilla & Damiana — Dopamine Support’,b:‘Support the dopamine and norepinephrine systems through mineral restoration — not receptor downregulation.’,h:[‘Sarsaparilla’,‘Damiana’],f:[]},
+{t:‘Burdock Root — Blood-Brain Barrier’,b:‘Clears the inflammatory compounds that impair neurological function.’,h:[‘Burdock Root’],f:[]},
+{t:‘Spring Water & Electric Foods’,b:‘Replace all fluoridated water. Steady alkaline fuel — no glucose spikes.’,h:[],f:[‘Spring water (replace tap)’,‘Walnuts’,‘Hemp seeds’,‘Avocado’,‘Figs’,‘Quinoa’,‘Brazil nuts’]}],
+deeper:“If no change after 3 months: audit diet honestly — dairy hidden in sauces, artificial colors in children’s vitamins. Then gut restoration — 30 days of cascara sagrada and sea moss prebiotic before continuing. Consider whether environment is maintaining the pattern — routine and rhythm teach the nervous system what the herbs prepare it to learn.”,
+q:“The brain is not deficient in stimulants. It is deficient in minerals. Feed it minerals and it will find its own focus.”,qs:‘Dr. Sebi on ADHD and the Over-Medicated Mind’},
+
+{id:‘depression’,name:‘Depression’,cat:‘Mental Health’,al:[‘mental health’,‘mood’,‘sadness’,‘low mood’,‘depressed’],
+rh:‘Electrical Failure in an Under-Mineralized Brain’,
+rc:“When the body is deficient in iron, iodine, and magnesium — the brain cannot produce neurotransmitters accurately. You call this depression. I call it electrical failure in an under-mineralized brain.”,
+pharma:‘SSRIs force the brain to keep circulating serotonin it already produced — the brain responds by downregulating receptor sites. After years, the brain cannot function without the drug not because the deficiency was corrected but because the receptors changed. Begin the mineral restoration alongside medication — not instead of it.’,
+el:[‘Processed sugar — serotonin spike followed by a worse crash’,‘Animal products — acid-forming and inflammatory to neurological tissue’,‘Alcohol — depletes every mineral it contacts’,‘Excess caffeine’],
+steps:[
+{t:‘Sea Moss & Bladderwrack’,b:‘The most complete natural mineral profile for neurological function. The non-negotiable foundation.’,h:[‘Sea Moss’,‘Bladderwrack’],f:[]},
+{t:‘Blue Vervain — Rebuilder’,b:‘Nourishes the myelin sheath and supports neurotransmitter rebalancing. Not a sedative.’,h:[‘Blue Vervain’],f:[]},
+{t:‘Damiana — Mood & Hormonal’,b:“Supports the body’s natural mood-regulating compounds without pharmaceutical withdrawal effects.”,h:[‘Damiana’],f:[]},
+{t:‘Burdock Root — Blood Cleanse’,b:‘Purifies the blood of acids that cross the blood-brain barrier and contribute to the imbalance.’,h:[‘Burdock Root’],f:[]},
+{t:‘Sun, Movement & Electric Foods’,b:‘Sunlight for serotonin synthesis. Movement for lymph and oxygenation.’,h:[],f:[‘Walnuts’,‘Hemp seeds’,‘Figs’,‘Soursop’,‘Avocado’,‘Dandelion greens’]}],
+deeper:‘If depression persists: examine gut absorption, spring water vs fluoridated tap, and sleep. Add valerian and tila to the evening routine. Then ask: is the environment itself the source? No herb changes a situation that needs to change.’,
+q:“The mind does not exist separate from the body. When the body is clean, the mind clears.”,qs:‘Dr. Sebi on Mental Health’},
+
+{id:‘anxiety’,name:‘Anxiety’,cat:‘Mental Health’,al:[‘panic’,‘stress’,‘nervous’,‘worry’,‘panic attack’,‘anxious’,‘tension’],
+rh:‘Overstimulated Nerves, Mineral-Deficient Body’,
+rc:“An anxious nervous system is a malnourished nervous system. When magnesium, calcium, and iron are depleted, the threshold lowers. Everything becomes a trigger.”,
+pharma:‘Benzodiazepines are among the most dependency-forming pharmaceuticals in existence — the brain reduces its own GABA over time. Never stop benzodiazepines abruptly — medically dangerous. Begin the mineral restoration during a supervised taper.’,
+el:[‘Caffeine — depletes magnesium, over-stimulates adrenals’,‘Processed sugar — cortisol volatility’,‘Alcohol — rebounds into amplified anxiety’,‘All hybrid and processed foods’],
+steps:[
+{t:‘Blue Vervain — Primary Nerve Herb’,b:‘Restores electrical balance of the nervous system. Deepens over weeks of consistent use.’,h:[‘Blue Vervain’],f:[]},
+{t:‘Sea Moss — Magnesium’,b:“Magnesium is the nervous system’s brake pedal.”,h:[‘Sea Moss’,‘Bladderwrack’],f:[]},
+{t:‘Tila — Acute Calming’,b:‘Linden flower tea for acute episodes — no dependency risk.’,h:[‘Tila (Linden Flower)’],f:[]},
+{t:‘Valerian & Damiana’,b:‘Sleep and adrenal regulation — the source of the chronic stress state.’,h:[‘Valerian Root’,‘Damiana’],f:[]},
+{t:‘Grounding Foods’,b:‘Consistent eating times. Figs, walnuts, hemp seeds, avocado.’,h:[],f:[‘Figs’,‘Walnuts’,‘Hemp seeds’,‘Avocado’,‘Quinoa’]}],
+deeper:‘If anxiety is not resolving: examine whether there is a learned nervous system pattern underneath the biochemical one. The herbs calm the physiology. Routine, nature, and stillness practices teach the nervous system the new pattern.’,
+q:‘You are not an anxious person. You are a person whose body has run out of what calm requires. Restore it.’,qs:‘Dr. Sebi on Neurological Balance’},
+
+{id:‘bipolar’,name:‘Bipolar Disorder’,cat:‘Mental Health’,al:[‘bipolar’,‘manic depression’,‘mania’,‘bipolar disorder’,‘mood swings’,‘manic’],
+rh:‘A Nervous System Oscillating Without Mineral Anchors’,
+rc:“Bipolar disorder is the nervous system swinging between extremes because it has no stable mineral foundation to return to. The manic state is a nervous system over-conducting electricity it cannot regulate. The depressive state is the crash that follows.”,
+pharma:‘Lithium is itself a mineral — which tells you something about what the body was missing. Run the protocol alongside mood stabilizers. Let the physician guide any pharmaceutical changes.’,
+el:[‘Processed sugar — amplifies mood dysregulation’,‘Caffeine — over-stimulates a dysregulated nervous system’,‘Alcohol — deepens both poles’,‘Animal products and hybrid foods’],
+steps:[
+{t:‘Sea Moss & Bladderwrack — Mineral Stability’,b:‘The complete spectrum — magnesium for calming, iron for conduction, iodine for hormonal regulation. Daily without exception.’,h:[‘Sea Moss’,‘Bladderwrack’],f:[]},
+{t:‘Blue Vervain — Both Poles’,b:‘Calms hyperexcitability in mania. Nourishes depleted nervous tissue in depression.’,h:[‘Blue Vervain’],f:[]},
+{t:‘Valerian Root & Tila — Sleep’,b:‘Sleep is the most powerful mood stabilizer the body has. Protect it.’,h:[‘Valerian Root’,‘Tila (Linden Flower)’],f:[]},
+{t:‘Damiana — Dopamine Balance’,b:‘Supports natural dopamine regulation without receptor downregulation.’,h:[‘Damiana’],f:[]},
+{t:‘Consistent Electric Food Rhythm’,b:‘The body craves rhythm. Consistent meals at consistent times are themselves stabilizing.’,h:[],f:[‘Walnuts’,‘Hemp seeds’,‘Avocado’,‘Figs’,‘Soursop’,‘Brazil nuts’,‘Quinoa’]}],
+deeper:‘If swings continue: examine sleep with absolute scrutiny. One night of poor sleep can trigger a manic episode. The sleep protocol must be treated as medication, not a suggestion.’,
+q:‘The body does not prefer extremes. It was built for balance. Give it the minerals balance requires.’,qs:‘Dr. Sebi on Neurological Disorders’},
+
+{id:‘ptsd’,name:‘PTSD’,cat:‘Mental Health’,al:[‘ptsd’,‘trauma’,‘post traumatic’,‘post-traumatic stress’,‘traumatic stress’,‘trauma disorder’],
+rh:‘A Nervous System Locked in the Event That Ended’,
+rc:“PTSD is not weakness. It is a nervous system that locked itself into maximum alert and has not been able to find its way back. The body is still in the emergency even after the emergency is over.”,
+pharma:‘SSRIs were designed for depression and repurposed for PTSD. EMDR and somatic therapies show stronger results in clinical literature. The herbs rebuild the physical capacity for healing — the therapeutic relationship does the work the herbs prepare the body for.’,
+el:[‘Caffeine — maintains the adrenal activation PTSD is trying to escape’,‘Alcohol — used as self-medication, deepens neurological damage’,‘Processed sugar — amplifies cortisol responses’,‘All acid-forming foods’],
+steps:[
+{t:‘Blue Vervain — Safety Signal’,b:‘Communicates safety to the nervous system at the biochemical level. The primary herb.’,h:[‘Blue Vervain’],f:[]},
+{t:‘Sea Moss & Bladderwrack — Adrenal Minerals’,b:‘Restores magnesium — the mineral most depleted by chronic stress.’,h:[‘Sea Moss’,‘Bladderwrack’],f:[]},
+{t:‘Valerian Root & Tila — Sleep’,b:‘Sleep is when the nervous system processes and integrates experience. PTSD disrupts this.’,h:[‘Valerian Root’,‘Tila (Linden Flower)’],f:[]},
+{t:‘Damiana — Cortisol Rhythm’,b:‘Restores the natural diurnal pattern over weeks of consistent use.’,h:[‘Damiana’],f:[]},
+{t:‘Grounding Through Electric Foods’,b:‘Preparing and eating whole foods grounds the nervous system in the present.’,h:[],f:[‘Figs’,‘Walnuts’,‘Avocado’,‘Hemp seeds’,‘Soursop’,‘Quinoa’]}],
+deeper:‘If PTSD symptoms persist: the nervous system may need more than herbs and food can provide. PTSD often requires a therapeutic relationship. The herbs rebuild the physical capacity — the relationship does the work that the herbs prepare the body for.’,
+q:‘The body is still in the event that ended. The herbs say: you are here now. It is over. Come back.’,qs:‘Dr. Sebi on Trauma and Nervous System Recovery’},
+
+{id:‘arthritis’,name:‘Arthritis’,cat:‘Inflammatory’,al:[‘joint pain’,‘joints’,‘rheumatoid’,‘osteoarthritis’,‘inflammation’,‘stiff joints’],
+rh:‘Uric Acid Crystallizing in the Joints’,
+rc:“Arthritis is acid that has crystallized. Uric acid from animal protein settles into the joints when the lymphatic system cannot clear it. The acid came from the plate.”,
+pharma:‘NSAIDs reduce inflammation but do not dissolve the uric acid crystals causing it. Used long-term they damage the gut lining — impairing the mineral absorption that would address the root cause.’,
+el:[‘Animal protein — primary source of uric acid’,‘Alcohol especially beer’,‘Hybrid nightshades’,‘Processed sugar and starch’],
+steps:[
+{t:‘Chaparral — Anti-Inflammatory’,b:‘Most powerful anti-inflammatory herb in my system. Dissolves uric acid deposits.’,h:[‘Chaparral’],f:[]},
+{t:‘Burdock Root & Sarsaparilla’,b:‘Burdock clears uric acid from blood. Sarsaparilla carries endotoxins out.’,h:[‘Burdock Root’,‘Sarsaparilla’],f:[]},
+{t:‘Sea Moss — Joint Tissue’,b:‘Provides the mineral matrix that joint tissue depends on.’,h:[‘Sea Moss’],f:[]},
+{t:‘Contribo — Pain Relief’,b:‘Caribbean analgesic herb — genuine relief while the deeper cleansing works.’,h:[‘Contribo’],f:[]},
+{t:‘Alkaline Foods’,b:‘Tart cherry juice, key lime water, dandelion greens.’,h:[],f:[‘Tart cherries’,‘Key lime water’,‘Dandelion greens’,‘Watercress’,‘Quinoa’]}],
+deeper:“If joints are not responding: add cleavers to the lymphatic protocol. Remove all nightshades — conventional tomatoes, peppers, potatoes contain solanine that specifically worsens arthritic inflammation.”,
+q:“Arthritis is yesterday’s diet living in today’s joints. Change the diet and the joints change.”,qs:‘Dr. Sebi on Arthritis’},
+
+{id:‘herpes’,name:‘Herpes’,cat:‘Viral’,al:[‘herpes simplex’,‘cold sores’,‘hsv’,‘genital herpes’,‘shingles’],
+rh:‘A Virus Living in Acid and Mineral Depletion’,
+rc:“The herpes virus does not activate in an alkaline body. What wakes it is acid, stress, and the mineral depletion that leaves the nervous system without its protective sheath. Starve the environment it requires and it stays quiet.”,
+pharma:‘Acyclovir and valacyclovir reduce viral replication and outbreak frequency. They do not address the nervous system mineral deficiency that allows the virus to activate. Run the herbal protocol alongside suppressive therapy.’,
+el:[‘Animal products’,‘Processed sugar’,‘Alcohol’,‘Stress — directly triggers outbreaks’],
+steps:[
+{t:‘Elderberry — Antiviral’,b:‘Inhibits viral replication. Reduces frequency and severity of outbreaks consistently.’,h:[‘Elderberry’,‘Elderflower’],f:[]},
+{t:‘Blue Vervain — Nerve Shield’,b:‘Herpes lives in nervous tissue. Blue vervain reduces the hyperexcitability that allows it to surface.’,h:[‘Blue Vervain’],f:[]},
+{t:‘Burdock Root & Sarsaparilla’,b:‘Purify blood and clear lymph — reduce the viral load.’,h:[‘Burdock Root’,‘Sarsaparilla’],f:[]},
+{t:‘Sea Moss & Bladderwrack’,b:‘Flood the nerve sheaths with the minerals they need to resist viral activation.’,h:[‘Sea Moss’,‘Bladderwrack’],f:[]},
+{t:‘Lysine-Rich Electric Foods’,b:‘Figs, mango, soursop naturally suppress herpes viral activity.’,h:[],f:[‘Figs’,‘Mango’,‘Soursop’,‘Plums’,‘Avocado’,‘Seeded grapes’]}],
+deeper:‘If outbreaks continue frequently: stress is the primary variable. Blue vervain and valerian root taken consistently as daily tonics — not just reactively after an outbreak — is the most important adjustment.’,
+q:‘The virus is not the enemy. The environment you created for it — that is what must change.’,qs:‘Dr. Sebi on Viral Conditions’},
+
+{id:‘eczema’,name:‘Eczema’,cat:‘Skin’,al:[‘skin rash’,‘dermatitis’,‘itchy skin’,‘rash’,‘skin condition’,‘psoriasis’,‘skin’],
+rh:‘Acidic Blood Surfacing Through the Skin’,
+rc:“The skin does not create problems — it reports them. Eczema is the blood speaking. The rash is the exhaust pipe.”,
+pharma:‘Topical corticosteroids suppress inflammation but do not address the acidic blood generating it. Long-term use thins the skin. Run blood purification alongside topical treatment.’,
+el:[‘Dairy — inflames the skin almost immediately’,‘All hybrid and processed foods’,‘Conventional meat’,‘Chemical skincare products’],
+steps:[
+{t:‘Burdock Root & Yellow Dock’,b:‘Most powerful blood-purifying compound in my herbal system.’,h:[‘Burdock Root’,‘Yellow Dock’],f:[]},
+{t:‘Chaparral — Lymphatic Drainage’,b:‘Opens congested lymphatic channels.’,h:[‘Chaparral’],f:[]},
+{t:‘Sea Moss — Topical & Internal’,b:‘Soothes externally, rebuilds cellular integrity internally.’,h:[‘Sea Moss’],f:[]},
+{t:‘Blue Vervain — Stress Response’,b:‘Reduces cortisol-driven flare-ups.’,h:[‘Blue Vervain’],f:[]},
+{t:‘Electric Foods’,b:‘Avocado, hemp seeds, soursop, watercress.’,h:[],f:[‘Avocado’,‘Hemp seeds’,‘Soursop’,‘Figs’,‘Watercress’]}],
+deeper:“If eczema persists: check all chemical personal care products — shampoos, detergents, fabric softeners. The skin is expelling what the body cannot eliminate. Blocking it topically while consuming the source is a cycle the herbs alone cannot break.”,
+q:“The skin is the body’s confession. It tells you exactly what is happening inside.”,qs:‘Dr. Sebi on Skin Conditions’},
+
+{id:‘lupus’,name:‘Lupus’,cat:‘Autoimmune’,al:[‘autoimmune’,‘sle’,‘systemic lupus’],
+rh:‘The Immune System Lost in a Mineral-Starved Body’,
+rc:“Lupus is the immune system attacking the body’s own tissue — not because it is malfunctioning but because it cannot distinguish healthy tissue from pathological tissue in a mineral-depleted, acid-saturated environment.”,
+pharma:‘Hydroxychloroquine and immunosuppressants manage the immune overresponse. They do not restore the mineral foundation the immune system requires to calibrate itself correctly. Run the protocol alongside — let the physician guide any pharmaceutical changes.’,
+el:[‘Animal products in all forms’,‘All processed and hybrid foods’,‘Environmental and chemical toxins’],
+steps:[
+{t:‘Sea Moss & Bladderwrack — Foundation’,b:‘The immune system needs a complete mineral base to function accurately. Twice daily without exception.’,h:[‘Sea Moss’,‘Bladderwrack’],f:[]},
+{t:‘Chaparral — Lymphatic Clearing’,b:‘The road the immune system travels. In lupus it is chronically congested.’,h:[‘Chaparral’],f:[]},
+{t:‘Blue Vervain — Inflammation’,b:‘Calms systemic inflammatory signaling.’,h:[‘Blue Vervain’],f:[]},
+{t:‘Burdock Root & Yellow Dock’,b:‘Daily blood purification — breaks down the circulating immune complexes causing tissue damage.’,h:[‘Burdock Root’,‘Yellow Dock’],f:[]},
+{t:‘Strict Electric Diet’,b:‘Every hybrid or animal-based food triggers the immune response. No exceptions.’,h:[],f:[‘Quinoa’,‘Amaranth’,‘Avocado’,‘Sea vegetables’,‘Watercress’,‘Soursop’,‘Figs’]}],
+deeper:“Lupus is one of the most demanding conditions for protocol precision. Every exception in the diet is a flare. The strict dietary phase — 90 days of absolute alkaline compliance — often produces the most visible shift. After that, the herbs become maintenance.”,
+q:“The immune system is not confused. It is working in a body that has given it no accurate information. Give it accuracy.”,qs:‘Dr. Sebi on Autoimmune Conditions’},
+
+{id:‘cancer’,name:‘Cancer’,cat:‘Cellular’,al:[‘tumor’,‘malignant’,‘carcinoma’,‘oncology’,‘neoplasm’],
+rh:‘Cellular Mutation in an Acid, Oxygen-Depleted Environment’,
+rc:“Cancer does not grow in an alkaline, oxygen-rich environment. The cancer cell is anaerobic — it requires no oxygen, thrives on acid, feeds on sugar. Remove the acid. Oxygenate the blood.”,
+pharma:‘Do not refuse chemotherapy for active spreading cancer — it is an emergency intervention for an emergency condition. The terrain that allowed the cancer to develop has not been addressed by chemotherapy. Run the alkaline protocol alongside oncological treatment to support the body surviving it.’,
+el:[‘All sugar — cancer feeds on glucose at 10x the rate of healthy cells’,‘All animal products’,‘Processed food’,‘Hybrid foods’],
+steps:[
+{t:‘Chaparral — NDGA & Cellular Defense’,b:‘Contains NDGA studied for inhibiting abnormal cellular respiration.’,h:[‘Chaparral’],f:[]},
+{t:‘Elderberry & Sea Moss — Immune Fortification’,b:‘Immune surveillance requires mineral sufficiency.’,h:[‘Elderberry’,‘Sea Moss’,‘Bladderwrack’],f:[]},
+{t:‘Burdock Root & Yellow Dock’,b:‘Purifies the blood of the acid and toxin load that created the environment.’,h:[‘Burdock Root’,‘Yellow Dock’,‘Sarsaparilla’],f:[]},
+{t:‘Soursop — Acetogenins’,b:‘Annonaceous acetogenins studied for selective action on abnormal cells. Daily.’,h:[],f:[‘Soursop (whole fruit and leaf tea)’]},
+{t:‘Extended Fasting & Spring Water’,b:‘Induces cellular autophagy — the body consuming damaged cells for energy.’,h:[],f:[‘Spring water’,‘Key lime water’,‘Soursop juice’]}],
+deeper:‘Cancer is not a 3-month protocol. It is a permanent change of terrain. The alkaline protocol after any cancer diagnosis is the new permanent foundation — not a temporary intervention.’,
+q:‘Cancer cannot live where there is no acid and no sugar to feed it. Make that environment and cancer becomes homeless.’,qs:‘Dr. Sebi on Cancer’},
+
+{id:‘meth-addiction’,name:‘Methamphetamine Addiction’,cat:‘Addiction & Recovery’,al:[‘meth’,‘methamphetamine’,‘crystal meth’,‘crystal’,‘speed’,‘meth recovery’],
+rh:‘A Nervous System Stripped to the Wire’,
+rc:“Methamphetamine tears through the nervous system like fire through dry grass — burning dopamine receptors and depleting every mineral the brain uses to regulate pleasure and peace. The nervous system has forgotten how to feel anything without it. The body can rebuild.”,
+pharma:‘There are no FDA-approved pharmaceutical treatments for methamphetamine addiction — which speaks to how little the pharmaceutical model has to offer here. The herbal and mineral protocol fills the gap pharmaceutical care has left.’,
+el:[‘The substance — no protocol succeeds alongside continued use’,‘All processed sugar — mimics dopamine spike and perpetuates craving’,‘Caffeine — further depletes adrenals already in crisis’,‘All hybrid and acid-forming foods’],
+steps:[
+{t:‘Blue Vervain — Rebuilder’,b:“Cornerstone of stimulant recovery. Restores the nervous system’s capacity for natural pleasure.”,h:[‘Blue Vervain’],f:[]},
+{t:‘Sea Moss & Bladderwrack’,b:‘Emergency mineral replenishment for the stripped nervous system.’,h:[‘Sea Moss’,‘Bladderwrack’],f:[]},
+{t:‘Valerian Root & Damiana’,b:‘Sleep restoration and dopamine precursor support.’,h:[‘Valerian Root’,‘Damiana’],f:[]},
+{t:‘Burdock Root & Chaparral’,b:‘Liver and lymphatic detox of toxic metabolites.’,h:[‘Burdock Root’,‘Chaparral’],f:[]},
+{t:‘Sarsaparilla — Adrenal Recovery’,b:‘The adrenals are among the most devastated organs after prolonged meth use.’,h:[‘Sarsaparilla’],f:[]},
+{t:‘Electric Foods for Neurological Repair’,b:‘Walnuts for dopaminergic neuron repair. Natural sugars from figs and dates.’,h:[],f:[‘Walnuts’,‘Hemp seeds’,‘Figs’,‘Dates’,‘Avocado’,‘Brazil nuts’,‘Soursop’,‘Quinoa’]}],
+deeper:‘Meth recovery is measured in years not months. Three months is the beginning. Measure by direction of travel: Is sleep improving? Is any natural pleasure returning? These are the real metrics.’,
+q:‘The body did not break itself. It was broken by what it was given. Take away what broke it, give it what it needs.’,qs:‘Dr. Sebi on Addiction and Recovery’},
+
+{id:‘opioid-addiction’,name:‘Opioid & Heroin Addiction’,cat:‘Addiction & Recovery’,al:[‘heroin’,‘opioid’,‘opiate’,‘fentanyl’,‘opioid addiction’,‘heroin addiction’,‘pain pills’],
+rh:‘The Nervous System Hijacked by Artificial Endorphins’,
+rc:“Opioids flood the endorphin receptor sites so powerfully that the body stops producing its own endorphins entirely. Withdrawal is a nervous system architecturally altered trying to find its way back to its original design. The original design is recoverable.”,
+pharma:‘Methadone and buprenorphine (Suboxone) are harm reduction tools — they prevent life-threatening withdrawal and reduce overdose death. Do not refuse medical stabilization. Once stable, begin the mineral protocol that rebuilds the endorphin system.’,
+el:[‘The substance — no herbal protocol overrides active opioid use’,‘All animal products’,‘Processed sugar — triggers same reward pathways’,‘All acid-forming food’],
+steps:[
+{t:‘Blue Vervain — Endorphin Pathway’,b:‘Calms withdrawal hyperexcitability while nourishing the neurological tissue that must rebuild.’,h:[‘Blue Vervain’],f:[]},
+{t:‘Sea Moss & Bladderwrack’,b:‘Restore the complete mineral matrix the nervous system needs to produce its own chemistry.’,h:[‘Sea Moss’,‘Bladderwrack’],f:[]},
+{t:‘Valerian Root — Withdrawal & Sleep’,b:‘Eases physical tension and restores sleep architecture.’,h:[‘Valerian Root’],f:[]},
+{t:‘Chaparral & Burdock Root’,b:‘Clear opioid metabolites from liver and lymphatic system.’,h:[‘Chaparral’,‘Burdock Root’],f:[]},
+{t:‘Damiana — Anhedonia’,b:“The absence of pleasure is the most dangerous aspect of opioid recovery. Damiana restores the brain’s ability to experience natural reward.”,h:[‘Damiana’],f:[]},
+{t:‘Electric Foods’,b:‘Endorphin precursor amino acids from whole plant foods.’,h:[],f:[‘Figs’,‘Soursop’,‘Avocado’,‘Hemp seeds’,‘Walnuts’,‘Dates’,‘Quinoa’]}],
+deeper:‘Fentanyl addiction has a longer recovery timeline than other opioids — the receptor sites were altered more profoundly. Do not compare the timeline to other substance recoveries. The direction of travel matters more than the speed.’,
+q:“The opioid gave the body what it had forgotten how to make for itself. Teach the body to make it again.”,qs:‘Dr. Sebi on Opioid Addiction and Recovery’},
+
+{id:‘alcohol-addiction’,name:‘Alcohol Addiction’,cat:‘Addiction & Recovery’,al:[‘alcohol’,‘alcoholism’,‘drinking’,‘alcohol dependence’,‘alcoholic’],
+rh:‘A Liquid Acid Dismantling the Body From the Inside’,
+rc:“Alcohol is a direct neurotoxin that depletes every mineral it contacts. The person who has used it for years is living in a body stripped of the chemistry required to feel stable. The withdrawal symptoms are the body screaming for the minerals that were taken.”,
+pharma:‘Alcohol withdrawal can cause fatal seizures — do not stop abruptly without medical supervision if physically dependent. After medical stabilization, naltrexone and acamprosate can reduce cravings alongside the herbal protocol.’,
+el:[‘Alcohol — gradually under medical supervision if dependent’,‘All processed sugar’,‘Hybrid and acid-forming foods’,‘Caffeine’],
+steps:[
+{t:‘Sea Moss & Bladderwrack — Emergency’,b:‘Alcoholism depletes mineral reserves more thoroughly than almost any other condition.’,h:[‘Sea Moss’,‘Bladderwrack’],f:[]},
+{t:‘Burdock Root & Dandelion Root’,b:‘Liver regeneration — detoxification and cell repair simultaneously.’,h:[‘Burdock Root’,‘Dandelion Root’],f:[]},
+{t:‘Blue Vervain — Nervous System’,b:‘Calms the nervous hyperexcitability of the withdrawal state.’,h:[‘Blue Vervain’],f:[]},
+{t:‘Valerian Root & Tila’,b:‘Rebuild sleep architecture as the nervous system recovers.’,h:[‘Valerian Root’,‘Tila (Linden Flower)’],f:[]},
+{t:‘Chaparral’,b:‘Opens lymphatic drainage to remove what alcohol deposited throughout the body.’,h:[‘Chaparral’],f:[]},
+{t:‘Electric Foods’,b:‘Dandelion greens for liver. Figs for the sugar craving. Soursop and avocado for what alcohol depleted.’,h:[],f:[‘Dandelion greens’,‘Figs’,‘Soursop’,‘Avocado’,‘Watercress’,‘Hemp seeds’,‘Key lime water’,‘Quinoa’]}],
+deeper:‘If strong cravings persist: examine what the alcohol was medicating — anxiety, PTSD, depression, social pain. The herbs address the physiological substrate. They do not address the original wound. That work is as important as the protocol.’,
+q:‘Alcohol is the most socially accepted poison I know. The body knows it is a poison from the first drop.’,qs:‘Dr. Sebi on Alcohol and Liver Health’},
+
+{id:‘nicotine-addiction’,name:‘Nicotine Addiction’,cat:‘Addiction & Recovery’,al:[‘nicotine’,‘smoking’,‘cigarettes’,‘tobacco’,‘vaping’,‘quit smoking’],
+rh:‘Nicotine Anchored to a Starved Nervous System’,
+rc:“Nicotine does not create pleasure. It relieves a discomfort that it itself created. The smoker is not a person who enjoys smoking — they are a person who has lost the ability to feel normal without it.”,
+pharma:‘Nicotine replacement therapy and varenicline reduce acute withdrawal severity. Run the lung restoration protocol simultaneously — every day without tobacco the cilia in the bronchial passages are already working to restore themselves.’,
+el:[‘All tobacco and nicotine products’,‘Processed sugar’,‘Alcohol — triggers the smoking reflex’,‘Dairy — congests recovering respiratory system’],
+steps:[
+{t:‘Mullein — Lung Clearing’,b:‘Dissolves tar-laden mucus and begins restoring the cilia tobacco paralyzed.’,h:[‘Mullein’],f:[]},
+{t:‘Blue Vervain — Receptor Normalization’,b:‘Restores the acetylcholine pathways that nicotine disrupted.’,h:[‘Blue Vervain’],f:[]},
+{t:‘Sea Moss & Bladderwrack’,b:‘Mineral matrix for respiratory tissue repair.’,h:[‘Sea Moss’,‘Bladderwrack’],f:[]},
+{t:‘Chaparral — Deep Lymph Detox’,b:‘Clears tobacco toxins from lymphatic nodes surrounding the lungs.’,h:[‘Chaparral’],f:[]},
+{t:‘Elderberry & Guaco’,b:‘Restore immune function suppressed by years of smoking.’,h:[‘Elderberry’,‘Guaco’],f:[]},
+{t:‘Electric Foods’,b:‘Elderberries, figs, soursop, watercress for respiratory recovery.’,h:[],f:[‘Elderberries’,‘Figs’,‘Soursop’,‘Watercress’,‘Hemp seeds’,‘Key lime water’,‘Quinoa’]}],
+deeper:‘Of all the addictions I work with, nicotine shows the fastest recovery when the protocol is followed. The nervous system responds within weeks. Three months is often enough for dramatic change if the protocol is genuine and complete.’,
+q:“The cigarette only took — and then offered you back a fraction of what it had already stolen.”,qs:‘Dr. Sebi on Nicotine and Respiratory Recovery’},
+
+{id:‘anemia’,name:‘Anemia’,cat:‘Blood’,al:[‘iron deficiency’,‘low iron’,‘low hemoglobin’,‘tired blood’],
+rh:‘A Body That Cannot Conduct Its Own Electricity’,
+rc:“You need iron. Without iron you cannot conduct electricity. And without electricity you are not fully alive.”,
+pharma:‘Pharmaceutical iron — ferrous sulfate — causes constipation, produces free radicals, and does not come with the co-factors plant iron provides. Plant iron from yellow dock root is gentler, more bioavailable, and comes with everything the body needs to use it.’,
+el:[‘Tea and coffee with meals — block iron absorption’,‘Calcium supplements at same time as iron’,‘Pharmaceutical iron that causes constipation’],
+steps:[
+{t:‘Yellow Dock Root — Plant Iron’,b:‘Richest plant source of bioavailable non-heme iron. Stimulates red blood cell production.’,h:[‘Yellow Dock Root’],f:[]},
+{t:‘Sea Moss & Bladderwrack’,b:‘Complete co-factor matrix that allows iron to be absorbed and used.’,h:[‘Sea Moss’,‘Bladderwrack’],f:[]},
+{t:‘Sarsaparilla — Iron Delivery’,b:‘Carrier herb — drives minerals into the cellular structure.’,h:[‘Sarsaparilla’],f:[]},
+{t:‘Electric Foods + Key Lime’,b:‘Amaranth greens, dandelion greens, watercress, teff. Key lime maximizes iron absorption.’,h:[],f:[‘Amaranth greens’,‘Dandelion greens’,‘Watercress’,‘Teff grain’,‘Figs’,‘Dates’,‘Key lime juice (with meals)’]}],
+deeper:‘If anemia is not responding: the gut cannot absorb the iron being consumed. Thirty days of gut restoration — cascara sagrada and sea moss prebiotic — before continuing the iron protocol.’,
+q:‘Iron is the mineral of life. Without iron, there is no electricity. Without electricity, there is no you.’,qs:‘Dr. Sebi on Iron and the Electric Body’},
+
+{id:‘kidney-stones’,name:‘Kidney Stones’,cat:‘Urinary’,al:[‘kidney’,‘stones’,‘renal’,‘urinary’,‘bladder stones’,‘oxalate’],
+rh:‘Acid Crystallizing in the Renal System’,
+rc:“Kidney stones are the body mineralizing what should have been eliminated. The stone is proof the blood was carrying too much of what the body did not need.”,
+pharma:‘There are few pharmaceutical treatments for kidney stones beyond pain management and alpha-blockers to help pass stones. This is an area where the dietary and herbal approach is the primary intervention.’,
+el:[‘Animal protein — primary driver of urinary acid’,‘Table salt’,‘Conventional dairy’,‘Sodas with phosphoric acid’],
+steps:[
+{t:‘Chaparral & Burdock Root’,b:‘Dissolve mineral deposits and purify the blood of acids that crystallize.’,h:[‘Chaparral’,‘Burdock Root’],f:[]},
+{t:‘Sarsaparilla — Urinary Flushing’,b:‘Increases urine flow to flush deposits before they consolidate.’,h:[‘Sarsaparilla’],f:[]},
+{t:‘Spring Water — One Gallon Daily’,b:‘The kidney is a filter. A filter with low flow clogs. Non-negotiable.’,h:[],f:[‘Spring water (one gallon daily)’]},
+{t:‘Key Lime & Elderberry’,b:‘Citric compounds inhibit stone formation. Elderberry supports renal function.’,h:[‘Elderberry’],f:[‘Key lime in spring water’,‘Seeded grapes’,‘Soursop’]},
+{t:‘Dietary Alkalinity’,b:‘Every acid-forming food removed is a reduction in raw material for stone formation.’,h:[],f:[‘Quinoa’,‘Watercress’,‘Dandelion greens’,‘Cucumber’,‘Avocado’]}],
+deeper:‘Kidney stones are primarily a volume problem. If stones continue: the water intake is almost always insufficient. One gallon is the minimum — not the goal.’,
+q:‘The kidney is a filter. Give it clean water and clean food, and it will clean you.’,qs:‘Dr. Sebi on Kidney Health’},
+
+{id:‘sickle-cell’,name:‘Sickle Cell’,cat:‘Blood’,al:[‘sickle cell’,‘sickle cell anemia’,‘hemoglobin sickle’],
+rh:‘Red Blood Cells Deformed by an Acid Environment’,
+rc:“Sickle cell disproportionately affects people of African descent — my people. The sickle shape occurs in an acidic blood environment and under low oxygen conditions. Alkalinity and oxygenation reduce the sickling.”,
+pharma:‘Hydroxyurea reduces crisis frequency. Run my protocol alongside it. The goal is to change the blood environment so profoundly that the crises become less frequent and less severe.’,
+el:[‘All acid-forming foods — directly trigger sickling’,‘Dehydration — the most direct crisis trigger’,‘High altitude, low-oxygen environments’],
+steps:[
+{t:‘Yellow Dock & Sea Moss’,b:‘Iron and complete co-factor mineral profile for red blood cell health.’,h:[‘Yellow Dock’,‘Sea Moss’,‘Bladderwrack’],f:[]},
+{t:‘Sarsaparilla — Oxygenation’,b:‘Improves hemoglobin production and iron utilization.’,h:[‘Sarsaparilla’],f:[]},
+{t:‘Spring Water — Two Liters Minimum’,b:‘Dehydration is the number one crisis trigger. Non-negotiable.’,h:[],f:[‘Spring water (critical — two liters minimum daily)’]},
+{t:‘Chaparral — Vascular Clearing’,b:‘Clears inflammatory debris that worsens crisis.’,h:[‘Chaparral’],f:[]},
+{t:‘Alkaline Foods Daily’,b:‘Every alkaline food raises blood pH and reduces the sickling environment.’,h:[],f:[‘Amaranth greens’,‘Watercress’,‘Figs’,‘Dates’,‘Soursop’,‘Key lime water’,‘Teff grain’]}],
+deeper:‘Sickle cell crisis prevention is the primary goal. The protocol works preventively. During an acute crisis: hydration, warmth, pain management, and medical care. The herbs are maintenance — not crisis intervention.’,
+q:‘Sickle cell is a condition of the blood environment. Change the environment.’,qs:‘Dr. Sebi on Blood Conditions’},
+];
+
+/* ════════════════════════════════════════════
+API SYSTEM PROMPT — COMPACT FORMAT
+════════════════════════════════════════════ */
+const SYS = `You are an educational assistant writing in the philosophical voice of Dr. Sebi (Alfredo Darrington Bowman, 1933-2016), the Honduran herbalist who developed the African Bio-Mineral Balance. Educational wellness information only.
+
+MUST respond to EVERY condition — addiction, rare diseases, injuries, blindness, deafness, physical disorders, mental health. Apply Dr. Sebi’s core principles: alkalize, mineralize, cleanse mucus and lymph, nourish with electric foods.
+
+Output ONLY a raw JSON object. No text before {. No text after }. No markdown. No code fences.
+
+COMPACT SCHEMA — keep all text SHORT and PUNCHY (2-3 sentences max per field):
+{
+“name”: “condition name”,
+“cat”: “category”,
+“rh”: “root cause heading (5-7 words)”,
+“rc”: “1-2 SHORT sentences in Dr. Sebi voice — the essence, nothing more”,
+“pharma”: “1-2 sentences on common pharmaceutical approach and what it misses. Honest, not dismissive.”,
+“el”: [“short eliminate item 1”, “short eliminate item 2”, “short eliminate item 3”, “short eliminate item 4”],
+“steps”: [
+{“t”: “Short step title”, “b”: “One punchy sentence explaining what and why.”, “h”: [“herb 1”], “f”: [“food 1”]},
+{“t”: “Short step title”, “b”: “One punchy sentence.”, “h”: [], “f”: [“food 1”, “food 2”]}
+],
+“deeper”: “2-3 short sentences: what to investigate if 3 months of protocol produces no change.”,
+“q”: “short powerful quote in Dr. Sebi voice”,
+“qs”: “Dr. Sebi on [topic]”
 }
 
-.container {
-  max-width:600px;
-  padding:20px;
-}
+Rules:
 
-.logo {
-  letter-spacing:.5em;
-  color:#4a9e84;
-  font-size:.7rem;
-  margin-bottom:20px;
-}
+- rc: STRING not array — 1-2 sentences max
+- steps: 4-6 steps — each body sentence is 1 sentence
+- h: ONLY Dr. Sebi approved herbs
+- f: ONLY Dr. Sebi electric foods
+- Output ONLY the raw JSON — nothing else`;
 
-.title {
-  font-family:'Playfair Display', serif;
-  font-size:3rem;
-  line-height:1;
-}
-
-.title span {
-  display:block;
-  font-style:italic;
-  color:#e8c96a;
-  font-size:1.2rem;
-  margin-top:10px;
-}
-
-.tagline {
-  margin:20px 0 30px;
-  font-style:italic;
-  color:#8acfba;
-}
-
-.search-box {
-  display:flex;
-  border-radius:50px;
-  overflow:hidden;
-  border:1px solid rgba(74,158,132,.3);
-}
-
-.search-box input {
-  flex:1;
-  padding:15px;
-  border:none;
-  outline:none;
-  background:transparent;
-  color:white;
-  font-size:1rem;
-}
-
-.search-box button {
-  background:#2e6b58;
-  border:none;
-  color:white;
-  padding:15px 25px;
-  cursor:pointer;
-}
-
-.results {
-  margin-top:30px;
-  text-align:left;
-}
-
-.card {
-  background:rgba(30,64,53,.4);
-  border:1px solid rgba(74,158,132,.2);
-  border-radius:10px;
-  padding:15px;
-  margin-bottom:15px;
-}
-
-.card h3 {
-  font-family:'Playfair Display', serif;
-  margin-bottom:10px;
-}
-
-.small {
-  font-size:.9rem;
-  opacity:.8;
-}
-</style>
-</head>
-
-<body>
-
-<div class="container">
-
-<div class="logo">THE SEBI CODEX</div>
-
-<div class="title">
-Alkaline Healing
-<span>African Bio-Mineral Balance</span>
+/* ════════════════════════════════════════════
+ACCORDION COMPONENT
+════════════════════════════════════════════ */
+function Accordion({ icon, title, children, defaultOpen = false }) {
+const [open, setOpen] = useState(defaultOpen);
+return (
+<div className="acc">
+<div className=“acchdr” onClick={() => setOpen(o => !o)}>
+<span className="accttl">{icon && <span>{icon}</span>}{title}</span>
+<span className={`accicon${open ? ' open' : ''}`}>▼</span>
 </div>
-
-<div class="tagline">
-Search any disease, condition, addiction, or symptom.
+<div className={`accbody ${open ? 'open' : 'closed'}`}>
+<div className="acccontent">{children}</div>
 </div>
-
-<div class="search-box">
-<input id="search" placeholder="Type any condition or symptom...">
-<button onclick="runSearch()">Search</button>
 </div>
-
-<div id="results" class="results"></div>
-
-</div>
-
-<script>
-
-// ===== LOCAL DATABASE =====
-const DB = {
-"diabetes": {
-title:"Diabetes",
-text:"The pancreas is not broken. It is buried under mucus and acid. Remove the mucus. Restore the minerals. The body corrects itself."
-},
-"adhd": {
-title:"ADHD & ADD",
-text:"The brain is not deficient in stimulants. It is deficient in minerals. Restore the minerals and the brain regulates itself."
-},
-"asthma": {
-title:"Asthma",
-text:"Asthma is mucus in the bronchial passages. Remove mucus-forming foods and open the lungs naturally."
-},
-"depression": {
-title:"Depression",
-text:"Depression is electrical failure in a mineral-deficient body. Restore minerals and the mind stabilizes."
-}
-};
-
-// ===== MAIN SEARCH =====
-async function runSearch(){
-const q = document.getElementById("search").value.toLowerCase();
-const results = document.getElementById("results");
-results.innerHTML = "";
-
-// LOCAL RESULT
-if(DB[q]){
-renderCard(DB[q].title, DB[q].text, "Database Result");
-return;
+);
 }
 
-// ===== AI VIA SUPABASE =====
-try{
-const res = await fetch("https://YOURPROJECT.supabase.co/functions/v1/ai-health", {
-method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({ query:q })
+/* ════════════════════════════════════════════
+MAIN COMPONENT
+════════════════════════════════════════════ */
+export default function SebiCodex() {
+const [view, setView]   = useState(‘home’);
+const [prot, setProt]   = useState(null);
+const [isAI, setIsAI]   = useState(false);
+const [loadQ, setLoadQ] = useState(’’);
+const [err, setErr]     = useState(’’);
+const [hQ, setHQ]       = useState(’’);
+const [rQ, setRQ]       = useState(’’);
+const [hDrop, setHDrop] = useState([]);
+const [rDrop, setRDrop] = useState([]);
+const [showH, setShowH] = useState(false);
+const [showR, setShowR] = useState(false);
+const [aidx, setAidx]   = useState(-1);
+const cache = useRef(new Map());
+
+useEffect(() => {
+if (!document.getElementById(‘sgf’)) {
+const l = document.createElement(‘link’);
+l.id = ‘sgf’; l.rel = ‘stylesheet’;
+l.href = ‘https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=IM+Fell+English:ital@0;1&display=swap’;
+document.head.appendChild(l);
+}
+}, []);
+
+const pts = Array.from({ length: 10 }, (_, i) => ({
+id: i, sz: Math.random() * 2.2 + 1, left: Math.random() * 100,
+dur: Math.random() * 16 + 13, delay: Math.random() * 16
+}));
+
+function searchDB(q) {
+if (!q || q.length < 2) return [];
+const lq = q.toLowerCase();
+return DB.filter(c =>
+c.name.toLowerCase().includes(lq) ||
+c.cat.toLowerCase().includes(lq) ||
+(c.al && c.al.some(a => a.includes(lq)))
+).slice(0, 7);
+}
+
+function onHQ(v) { setHQ(v); v.trim().length >= 2 ? (setHDrop(searchDB(v.trim())), setShowH(true)) : setShowH(false); setAidx(-1); }
+function onRQ(v) { setRQ(v); v.trim().length >= 2 ? (setRDrop(searchDB(v.trim())), setShowR(true)) : setShowR(false); setAidx(-1); }
+
+function handleKey(e, items, q, close) {
+if (![‘ArrowDown’,‘ArrowUp’,‘Enter’,‘Escape’].includes(e.key)) return;
+e.preventDefault();
+if (e.key === ‘Escape’) { close(); return; }
+if (e.key === ‘ArrowDown’) { setAidx(a => Math.min(a + 1, items.length - 1)); return; }
+if (e.key === ‘ArrowUp’)   { setAidx(a => Math.max(a - 1, -1)); return; }
+if (e.key === ‘Enter’) {
+if (aidx >= 0 && items[aidx]) { close(); pickStatic(items[aidx]); }
+else if (q.trim()) { close(); doGen(q.trim()); }
+}
+}
+
+function closeAll() { setShowH(false); setShowR(false); setAidx(-1); }
+function goHome()   { setView(‘home’); setHQ(’’); closeAll(); }
+
+function pickStatic(c) {
+closeAll(); setRQ(c.name); setProt(c); setIsAI(false);
+setView(‘result’); window.scrollTo({ top: 0, behavior: ‘smooth’ });
+}
+
+function pickChip(label) {
+const c = DB.find(d =>
+d.name.toLowerCase() === label.toLowerCase() ||
+(d.al && d.al.some(a => a === label.toLowerCase()))
+);
+c ? pickStatic(c) : doGen(label);
+}
+
+async function doGen(query) {
+if (cache.current.has(query.toLowerCase())) {
+setRQ(query); setProt(cache.current.get(query.toLowerCase()));
+setIsAI(true); setView(‘result’); return;
+}
+setLoadQ(query); setRQ(query); setView(‘loading’); setErr(’’); setProt(null);
+try {
+const data = await callAPI(query);
+cache.current.set(query.toLowerCase(), data);
+setProt(data); setIsAI(true); setView(‘result’);
+} catch (e) {
+setErr(String(e && e.message ? e.message : e)); setView(‘result’);
+}
+}
+
+async function callAPI(condition) {
+const res = await fetch(‘https://api.anthropic.com/v1/messages’, {
+method: ‘POST’,
+headers: { ‘Content-Type’: ‘application/json’ },
+body: JSON.stringify({
+model: ‘claude-sonnet-4-20250514’,
+max_tokens: 1800,
+system: SYS,
+messages: [{ role: ‘user’, content: `Write the compact Dr. Sebi educational protocol for: ${condition}` }]
+})
 });
-
-const data = await res.json();
-
-if(!data || !data.rc){
-throw new Error("Bad response");
+const payload = await res.json();
+if (!res.ok) throw new Error(`API ${res.status}: ${payload?.error?.message || JSON.stringify(payload).slice(0, 100)}`);
+const raw = (payload.content || []).filter(b => b.type === ‘text’).map(b => b.text).join(’’);
+if (!raw) throw new Error(`Empty response. Stop: ${payload.stop_reason}`);
+const a = raw.indexOf(’{’), b = raw.lastIndexOf(’}’);
+if (a === -1 || b === -1) throw new Error(`No JSON: "${raw.slice(0, 200)}"`);
+try { return JSON.parse(raw.slice(a, b + 1)); }
+catch (pe) { throw new Error(`Parse failed: ${pe.message}`); }
 }
 
-renderCard(data.name, data.rc, "AI Result");
-
-}catch(e){
-renderCard(q, "No database entry yet. This condition will be added soon.", "Fallback");
-}
-}
-
-// ===== UI RENDER =====
-function renderCard(title, text, label){
-const results = document.getElementById("results");
-
-results.innerHTML += `
-<div class="card">
-<h3>${title}</h3>
-<p class="small">${label}</p>
-<p>${text}</p>
+/* ── SUB-COMPONENTS ── */
+function StepCard({ s, i }) {
+const h = s.h || s.herbs || [], f = s.f || s.foods || [];
+const t = s.t || s.title || ‘’, b = s.b || s.body || ‘’;
+return (
+<div className="sc">
+<div className="sn">{i + 1}</div>
+<div style={{ flex: 1 }}>
+<h4>{t}</h4>
+<p>{b}</p>
+{(h.length > 0 || f.length > 0) && (
+<div className="tags">
+{h.map((x, j) => <span key={j} className="ht">{x}</span>)}
+{f.map((x, j) => <span key={j} className="ft">{x}</span>)}
 </div>
-`;
+)}
+</div>
+</div>
+);
 }
 
-</script>
+function Drop({ items, query, onPick, onGen, onClose }) {
+return (
+<div className="dd">
+{items.length === 0 && <div className="dde">No exact match — generate below</div>}
+{items.map((c, i) => (
+<div key={c.id} className={`ddi${aidx === i ? ' act' : ''}`} onClick={() => { onClose(); onPick(c); }}>
+<span className="ddn">{c.name}</span>
+<span className="ddc">{c.cat}</span>
+</div>
+))}
+<div className=“ddg” onClick={() => { onClose(); onGen(query); }}>
+<span className="ddgl">🌿 Generate protocol for “{query}”</span>
+<small className="ddgb">AI</small>
+</div>
+</div>
+);
+}
 
-</body>
-</html>
+const chips = [“Alzheimer’s & Dementia”,‘Diabetes’,‘ADHD & ADD’,‘Depression’,‘Anxiety’,‘Arthritis’,‘Meth Addiction’,‘Opioid & Heroin Addiction’,‘Alcohol Addiction’,‘High Blood Pressure’,‘Herpes’,‘Asthma’,‘Lupus’,‘Cancer’,‘Sickle Cell’,‘Bipolar Disorder’,‘PTSD’,‘Eczema’,‘Nicotine Addiction’,‘Kidney Stones’];
+
+/* ── PROTOCOL PAGE ── */
+function ProtocolPage() {
+if (!prot && err) return (
+<div className="rv">
+<div className="rnav"><button className="bbtn" onClick={goHome}>← Back</button><span className="nbrand">The Sebi Codex</span></div>
+<div style={{ textAlign: ‘center’, marginBottom: 28 }}>
+<p className="rey">African Bio-Mineral Balance</p>
+<h2 className=“rtit” style={{ fontFamily: “‘Playfair Display’,serif” }}>
+Dr. Sebi on <em style={{ fontStyle: ‘italic’, color: ‘var(–goldl)’ }}>{loadQ}</em>
+</h2>
+<div className="rdivr"><div className="rdl" /><span className="rdot">🌿</span><div className="rdlr" /></div>
+</div>
+<div className="ebox">
+<p>The healing archive connection was interrupted.</p>
+{err && <p className="edbg">{err}</p>}
+<button className=“rbtn” onClick={() => doGen(loadQ)}>↺ Try Again</button>
+</div>
+</div>
+);
+if (!prot) return null;
+
+```
+const rc     = typeof prot.rc === 'string' ? prot.rc : (prot.rc || prot.root_cause || []).join(' ');
+const el     = prot.el || prot.eliminate || [];
+const steps  = prot.steps || [];
+const rh     = prot.rh || prot.root_cause_heading || '';
+const q      = prot.q  || prot.quote || '';
+const qs     = prot.qs || prot.quote_source || 'Dr. Sebi';
+const pharma = prot.pharma || '';
+const deeper = prot.deeper || '';
+
+return (
+  <div className="rv" onClick={e => { if (!e.target.closest('.rsw')) setShowR(false); }}>
+    {/* NAV */}
+    <div className="rnav">
+      <button className="bbtn" onClick={goHome}>← Back</button>
+      <span className="nbrand">The Sebi Codex</span>
+      <div className="rsw">
+        <div className="rsb">
+          <span style={{ color: 'var(--sage)', fontSize: '.8rem', opacity: .52 }}>🌿</span>
+          <input className="rqi" type="text" value={rQ}
+            placeholder="Search another condition..."
+            onChange={e => onRQ(e.target.value)}
+            onKeyDown={e => handleKey(e, rDrop, rQ, () => setShowR(false))} />
+        </div>
+        {showR && rQ.trim().length >= 2 && (
+          <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 5px)', minWidth: 280, zIndex: 300 }}>
+            <Drop items={rDrop} query={rQ.trim()} onPick={pickStatic} onGen={doGen} onClose={() => setShowR(false)} />
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* HEADER */}
+    <div className="rhead">
+      <p className="rey">African Bio-Mineral Balance</p>
+      <h2 className="rtit">Dr. Sebi on <em>{prot.name}</em></h2>
+      <div className="rdivr"><div className="rdl" /><span className="rdot">🌿</span><div className="rdlr" /></div>
+      {isAI && <div className="aib">🌿 Generated from Dr. Sebi's principles</div>}
+    </div>
+
+    {/* ROOT CAUSE — always visible */}
+    <div className="sumcard">
+      <div className="sumtitle">{rh}</div>
+      <div className="sumtxt">{rc}</div>
+    </div>
+
+    {/* ELIMINATE ROW — scannable tags */}
+    {el.length > 0 && (
+      <div className="elimrow">
+        <span className="elimlabel">Remove From Your Life</span>
+        {el.map((e, i) => <span key={i} className="etag">{e}</span>)}
+      </div>
+    )}
+
+    {/* PROTOCOL — accordion */}
+    <Accordion icon="📋" title="The Protocol — Step by Step" defaultOpen={true}>
+      <div className="sgrid">
+        {steps.map((s, i) => <StepCard key={i} s={s} i={i} />)}
+      </div>
+    </Accordion>
+
+    {/* PHARMACEUTICAL PERSPECTIVE — accordion */}
+    {pharma && (
+      <Accordion icon="💊" title="On Common Pharmaceutical Treatments">
+        <div className="pharmabox">
+          <p className="pharmatxt">{pharma}</p>
+        </div>
+      </Accordion>
+    )}
+
+    {/* DEEPER — accordion */}
+    {deeper && (
+      <Accordion icon="🔍" title="If Three Months Pass and Nothing Changes">
+        <div className="deeperbox">
+          <p className="deepertxt">{deeper}</p>
+        </div>
+      </Accordion>
+    )}
+
+    {/* QUOTE */}
+    <div className="rqb">
+      <p>{q}</p>
+      <cite>— {qs}</cite>
+    </div>
+
+    {/* DISCLAIMER */}
+    <div className="disc">
+      <p><strong>Educational purposes only.</strong> Not medical advice. Does not diagnose or claim to treat any disease. Always consult a qualified physician before modifying any treatment plan. Never stop psychiatric or dependency medications without medical supervision.</p>
+    </div>
+  </div>
+);
+```
+
+}
+
+/* ── RENDER ── */
+return (
+<div className="sr">
+<style>{CSS}</style>
+<div className="ptc">
+{pts.map(p => (
+<div key={p.id} className=“pt” style={{
+width: p.sz, height: p.sz, left: `${p.left}%`,
+animationDuration: `${p.dur}s`, animationDelay: `${p.delay}s`
+}} />
+))}
+</div>
+
+```
+  {/* HOME */}
+  {view === 'home' && (
+    <div className="hv" onClick={e => { if (!e.target.closest('.sw')) closeAll(); }}>
+      <p className="logo">The Sebi Codex</p>
+      <h1 className="htitle">Alkaline Healing<span>African Bio-Mineral Balance</span></h1>
+      <p className="htag">Search any disease, condition, addiction, or symptom.</p>
+      <div className="sw">
+        <div className="sb">
+          <span className="sico">🌿</span>
+          <input className="sqi" type="text" value={hQ} autoComplete="off"
+            placeholder="Type any condition or symptom..."
+            onChange={e => onHQ(e.target.value)}
+            onKeyDown={e => handleKey(e, hDrop, hQ, closeAll)} />
+        </div>
+        {showH && hQ.trim().length >= 2 &&
+          <Drop items={hDrop} query={hQ.trim()} onPick={pickStatic} onGen={doGen} onClose={closeAll} />}
+      </div>
+      <div className="chips">
+        <p className="chl">Common searches</p>
+        {chips.map(c => <span key={c} className="chip" onClick={() => pickChip(c)}>{c}</span>)}
+      </div>
+    </div>
+  )}
+
+  {/* LOADING */}
+  {view === 'loading' && (
+    <div className="rv">
+      <div className="rnav"><button className="bbtn" onClick={goHome}>← Back</button><span className="nbrand">The Sebi Codex</span></div>
+      <div style={{ textAlign: 'center', marginBottom: 28 }}>
+        <p className="rey">African Bio-Mineral Balance</p>
+        <h2 className="rtit" style={{ fontFamily: "'Playfair Display',serif" }}>
+          Dr. Sebi on <em style={{ fontStyle: 'italic', color: 'var(--goldl)' }}>{loadQ}</em>
+        </h2>
+        <div className="rdivr"><div className="rdl" /><span className="rdot">🌿</span><div className="rdlr" /></div>
+      </div>
+      <div className="lw">
+        <div className="lorb" />
+        <p className="ltx">Consulting the African Bio-Mineral Balance...</p>
+        <p className="lcn">{loadQ}</p>
+      </div>
+    </div>
+  )}
+
+  {/* RESULT */}
+  {view === 'result' && <ProtocolPage />}
+
+  {view !== 'home' && (
+    <div className="foot">
+      <p>African Bio-Mineral Balance · Alfredo Darrington Bowman · 1933–2016</p>
+    </div>
+  )}
+</div>
+```
+
+);
+}
