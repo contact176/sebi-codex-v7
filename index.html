@@ -73,13 +73,13 @@ async function search(){
 
   try{
     const res = await fetch("http://localhost:11434/api/generate", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    model: "llama3",
-    prompt: `
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "llama3",
+        prompt: `
 You are an AI that answers exactly in the mindset of Dr. Sebi.
 
 Rules:
@@ -91,14 +91,8 @@ Rules:
 
 User question: ${q}
 `,
-    stream: false
-  })
-});
-
-const data = await res.json();
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ query:q })
+        stream: false
+      })
     });
 
     const data = await res.json();
@@ -106,11 +100,11 @@ const data = await res.json();
     box.innerHTML = `
       <div class="card">
         <h3>${q}</h3>
-        <p>${data.answer}</p>
+        <p>${data.response}</p>
       </div>
     `;
 
-  }catch(e){
+  } catch(e){
     box.innerHTML = `<div class="card">Error connecting to AI</div>`;
   }
 }
